@@ -1,6 +1,7 @@
 import pyaudio
 import queue
 import pprint
+import numpy as np
 
 CHUNK_SECONDS = 1
 SAMPLE_RATE = 16000
@@ -33,9 +34,13 @@ def audio_capture_thread(buff):
         input_device_index=DEVICE_INDEX
     )
     try:
-        for x in range(0, 10):
-            print("Captured...", flush=True)
+        for x in range(0, 100):
             audio_chunk = stream.read(CHUNK_SIZE)
+
+            d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
+            energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
+            print(f"Captured with {energy} db energy.", flush=True)
+
             buff.extend(audio_chunk)
         with open(TEMP, "wb") as f:
             f.write(buff)
