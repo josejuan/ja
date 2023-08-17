@@ -1,7 +1,15 @@
+import torch
+import nemo
+import nemo.collections.asr as asr
 import pyaudio
 import queue
 import pprint
 import numpy as np
+import wave
+import struct
+from datetime import datetime
+
+MODEL_NAME='stt_es_quartznet15x5'
 
 CHUNK_SECONDS = 1
 SAMPLE_RATE = 16000
@@ -13,6 +21,7 @@ TEMP='/tmp/microphone_transcribe.py.temp.wav'
 
 CHUNK_SIZE = SAMPLE_RATE * CHUNK_SECONDS
 
+qn = asr.models.EncDecCTCModel.from_pretrained(model_name=MODEL_NAME)
 p = pyaudio.PyAudio()
 
 # Use `arecord -D hw:2,0 --dump-hw-params` to get supported sample rates...
@@ -44,7 +53,7 @@ def audio_capture_thread(buff):
 
                 d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
                 energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
-                print(f"Captured with {energy} db energy.", flush=True)
+                #print(f"Captured with {energy} db energy.", flush=True)
 
                 buff.extend(audio_chunk)
 
@@ -54,9 +63,16 @@ def audio_capture_thread(buff):
                     dialog_chunks = dialog_chunks + 1
 
             if dialog_chunks >= DIALOG_MIN_CHUNKS:
+                stream.stop_stream()
                 print("Procesando buffer...", flush=True)
-                with open(TEMP, "wb") as f:
-                    f.write(buff)
+                with wave.open(TEMP, "wb") as f:
+                    f.setnchannels(1)
+                    f.setsampwidth(p.get_sample_size(pyaudio.paInt32))
+                    f.setframerate(SAMPLE_RATE)
+                    f.writeframes(buff)
+                for t in qn.transcribe(paths2audio_files=[TEMP]):
+                  print(f">>>> {t}")
+                stream.start_stream()
 
             buff[:] = bytearray()
     except KeyboardInterrupt:
