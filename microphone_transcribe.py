@@ -97,7 +97,7 @@ def audio_capture_thread(buff):
                         try:
                             httpr.urlopen(httpr.Request(SERVER_URL, data=t.encode("utf-8")))
                         except Exception as ex:
-                            print("Error conectando con Kopter: ", e)
+                            print("Error conectando con Kopter: ", ex)
                 t2 = datetime.now()
                 stream.start_stream()
                 t3 = datetime.now()
