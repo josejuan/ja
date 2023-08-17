@@ -25,6 +25,7 @@ DEVICE_INDEX=11
 PAUSE_CHUNKS=2
 PAUSE_MAX_DB=75
 DIALOG_MIN_CHUNKS=1
+DIALOG_MAX_CHUNKS = 30
 TEMP='/tmp/microphone_transcribe.py.temp.wav'
 
 CHUNK_SIZE = SAMPLE_RATE * CHUNK_SECONDS
@@ -80,6 +81,8 @@ def audio_capture_thread(buff):
                     paused_chunks = paused_chunks + 1
                 else:
                     dialog_chunks = dialog_chunks + 1
+                    if dialog_chunks > DIALOG_MAX_CHUNKS:
+                        do_reset = True
 
             if not do_reset and dialog_chunks >= DIALOG_MIN_CHUNKS:
                 t0 = datetime.now()
