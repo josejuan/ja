@@ -6,6 +6,9 @@ import numpy as np
 CHUNK_SECONDS = 1
 SAMPLE_RATE = 16000
 DEVICE_INDEX=11
+PAUSE_CHUNKS=2
+PAUSE_MAX_DB=75
+DIALOG_MIN_CHUNKS=1
 TEMP='/tmp/microphone_transcribe.py.temp.wav'
 
 CHUNK_SIZE = SAMPLE_RATE * CHUNK_SECONDS
@@ -29,22 +32,33 @@ def audio_capture_thread(buff):
         channels=1,
         rate=SAMPLE_RATE,
         input=True,
-        #output=True,
         frames_per_buffer=CHUNK_SIZE,
         input_device_index=DEVICE_INDEX
     )
     try:
-        for x in range(0, 100):
-            audio_chunk = stream.read(CHUNK_SIZE)
+        while True:
+            paused_chunks = 0
+            dialog_chunks = 0
+            while paused_chunks < PAUSE_CHUNKS:
+                audio_chunk = stream.read(CHUNK_SIZE)
 
-            d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
-            energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
-            print(f"Captured with {energy} db energy.", flush=True)
+                d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
+                energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
+                print(f"Captured with {energy} db energy.", flush=True)
 
-            buff.extend(audio_chunk)
-        with open(TEMP, "wb") as f:
-            f.write(buff)
-        print("Done.")
+                buff.extend(audio_chunk)
+
+                if energy <= PAUSE_MAX_DB:
+                    paused_chunks = paused_chunks + 1
+                else:
+                    dialog_chunks = dialog_chunks + 1
+
+            if dialog_chunks >= DIALOG_MIN_CHUNKS:
+                print("Procesando buffer...", flush=True)
+                with open(TEMP, "wb") as f:
+                    f.write(buff)
+
+            buff[:] = bytearray()
     except KeyboardInterrupt:
         print("Audio capture stopped.")
     finally:
