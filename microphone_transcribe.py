@@ -53,7 +53,7 @@ def audio_capture_thread(buff):
 
                 d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
                 energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
-                #print(f"Captured with {energy} db energy.", flush=True)
+                print(f"Captured with {energy} db energy.", flush=True)
 
                 buff.extend(audio_chunk)
 
@@ -63,6 +63,7 @@ def audio_capture_thread(buff):
                     dialog_chunks = dialog_chunks + 1
 
             if dialog_chunks >= DIALOG_MIN_CHUNKS:
+                t0 = datetime.now()
                 stream.stop_stream()
                 print("Procesando buffer...", flush=True)
                 with wave.open(TEMP, "wb") as f:
@@ -70,9 +71,13 @@ def audio_capture_thread(buff):
                     f.setsampwidth(p.get_sample_size(pyaudio.paInt32))
                     f.setframerate(SAMPLE_RATE)
                     f.writeframes(buff)
+                t1 = datetime.now()
                 for t in qn.transcribe(paths2audio_files=[TEMP]):
                   print(f">>>> {t}")
+                t2 = datetime.now()
                 stream.start_stream()
+                t3 = datetime.now()
+                print(f"Tiempo total {t3 - t0}, guardar {t1 - t0}, asr {t2 - t1}, start {t3 - t2}", flush=True)
 
             buff[:] = bytearray()
     except KeyboardInterrupt:
