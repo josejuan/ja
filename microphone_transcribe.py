@@ -73,7 +73,7 @@ def audio_capture_thread(buff):
 
                 d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
                 energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
-                print(f"Captured with {energy} db energy.", flush=True)
+                #print(f"Captured with {energy} db energy.", flush=True)
 
                 buff.extend(audio_chunk)
 
