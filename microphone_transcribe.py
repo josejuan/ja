@@ -20,10 +20,20 @@ HTTP_PORT=9057
 SERVER_URL='http://192.168.0.2:9057'
 
 CHUNK_SECONDS = 1
-SAMPLE_RATE = 16000
+
+# webcam
+#SAMPLE_RATE = 16000
+#FORMAT_TYPE=pyaudio.paInt32
+#VOLUMEN=1.0
+
+# usb card
+SAMPLE_RATE = 44100
+FORMAT_TYPE=pyaudio.paInt16
+VOLUMEN=2.0
+
 DEVICE_INDEX=11
 PAUSE_CHUNKS=2
-PAUSE_MAX_DB=75
+PAUSE_MAX_DB=68
 DIALOG_MIN_CHUNKS=1
 DIALOG_MAX_CHUNKS = 30
 TEMP='/tmp/microphone_transcribe.py.temp.wav'
@@ -62,7 +72,7 @@ def list_input_devices():
             print(f"Index {i}: {device_info['name']}")
 
 def audio_capture_thread(buff):
-    stream = p.open(format=pyaudio.paInt32, channels=1, rate=SAMPLE_RATE, input=True, frames_per_buffer=CHUNK_SIZE, input_device_index=DEVICE_INDEX)
+    stream = p.open(format=FORMAT_TYPE, channels=1, rate=SAMPLE_RATE, input=True, frames_per_buffer=CHUNK_SIZE, input_device_index=DEVICE_INDEX,input_volume=VOLUMEN)
     try:
         global do_reset
         while True:
@@ -73,7 +83,7 @@ def audio_capture_thread(buff):
 
                 d = np.frombuffer(audio_chunk, np.int32).astype(np.float)
                 energy = 10 * np.log10(np.sqrt((d*d).sum()/len(d)))
-                #print(f"Captured with {energy} db energy.", flush=True)
+                print(f"Captured with {energy} db energy.", flush=True)
 
                 buff.extend(audio_chunk)
 
@@ -83,6 +93,7 @@ def audio_capture_thread(buff):
                     dialog_chunks = dialog_chunks + 1
                     if dialog_chunks > DIALOG_MAX_CHUNKS:
                         do_reset = True
+                        print("WARNING too many chunks, reseting....")
 
             if not do_reset and dialog_chunks >= DIALOG_MIN_CHUNKS:
                 t0 = datetime.now()
@@ -90,7 +101,7 @@ def audio_capture_thread(buff):
                 print("Procesando buffer...", flush=True)
                 with wave.open(TEMP, "wb") as f:
                     f.setnchannels(1)
-                    f.setsampwidth(p.get_sample_size(pyaudio.paInt32))
+                    f.setsampwidth(p.get_sample_size(FORMAT_TYPE))
                     f.setframerate(SAMPLE_RATE)
                     f.writeframes(buff)
                 t1 = datetime.now()

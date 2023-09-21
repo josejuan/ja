@@ -3,7 +3,7 @@ import queue
 import pprint
 
 CHUNK_SECONDS = 1
-SAMPLE_RATE = 16000
+SAMPLE_RATE = 44100
 DEVICE_INDEX=11
 TEMP='/tmp/microphone_transcribe.py.temp.wav'
 
@@ -24,7 +24,8 @@ def list_input_devices():
 
 def audio_capture_thread(buff):
     stream = p.open(
-        format=pyaudio.paInt32,
+        format=pyaudio.paInt16,
+        # format=pyaudio.paInt32,
         channels=1,
         rate=SAMPLE_RATE,
         input=True,
